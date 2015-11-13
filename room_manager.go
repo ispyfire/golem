@@ -61,6 +61,11 @@ type connectionInfoReq struct {
 	overwrite bool
 }
 
+type RoomList struct {
+	Name string
+	Members uint
+}
+
 // Constructor for connection info struct
 func newConnectionInfo() *connectionInfo {
 	return &connectionInfo{
@@ -263,6 +268,23 @@ func (rm *RoomManager) Stop() {
 // Remove connections from a particular room and delete the room
 func (rm *RoomManager) Destroy(name string) {
 	rm.destroy <- name
+}
+
+// Return list of all rooms and the count of clients
+func (rm *RoomManager) EmitRoomList(to string) {
+	var rooms []RoomList
+
+	for k,r := range rm.rooms {
+		rooms = append(rooms, RoomList{Name: k, Members: r.count})
+	}
+
+	rm.send <- &roomMsg{
+		to: to,
+		msg: &message{
+			event: "rooms",
+			data: rooms,
+		},
+	}
 }
 
 // The room manager can emit several events. At the moment there are two events:
