@@ -161,7 +161,7 @@ func (rm *RoomManager) run() {
 				}
 				rm.rooms[req.name] = m
 				go rm.callbackRoomCreation(req.name)
-			} else { // If room exists increase count and join.
+			} else if _, ok := rm.members[req.conn]; !ok { // If room exists (and this connection isn't already joined) increase count and join.
 				m.count++
 			}
 			m.room.join <- req.conn
