@@ -19,7 +19,7 @@
 package golem
 
 import (
-	"encoding/json"
+	"goispyfire/json"
 	"errors"
 	"strings"
 )
