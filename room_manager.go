@@ -18,6 +18,10 @@
 
 package golem
 
+import (
+	"fmt"
+)
+
 const (
 	roomManagerCreateEvent        = "create"
 	roomManagerRemoveEvent        = "remove"
@@ -45,7 +49,11 @@ type managedRoom struct {
 	// Reference to room.
 	room *Room
 	// Member-count to allow removing of empty lobbies.
-	count uint
+	//count uint
+}
+
+func (m managedRoom) Count() int {
+	return m.room.Count
 }
 
 // Structure containing all necessary informations and options of
@@ -63,7 +71,7 @@ type connectionInfoReq struct {
 
 type RoomList struct {
 	Name string
-	Members uint
+	Members int
 }
 
 // Constructor for connection info struct
@@ -130,13 +138,12 @@ func (rm *RoomManager) leaveRoomByName(name string, conn *Connection) {
 		if c, ok := rm.members[conn]; ok { // Continue if connection has map of joined lobbies.
 			if _, ok := c.rooms[name]; ok { // Continue if connection actually joined specified room.
 				m.room.leave <- conn
-				m.count--
 				delete(c.rooms, name)
 				if len(c.rooms) == 0 && (c.options&CloseConnectionOnLastRoomLeft) == CloseConnectionOnLastRoomLeft {
 					delete(rm.members, conn)
 					conn.Close()
 				}
-				if m.count == 0 { // Get rid of room if it is empty
+				if m.Count() == 0 { // Get rid of room if it is empty
 					m.room.Stop()
 					delete(rm.rooms, name)
 					go rm.callbackRoomRemoval(name)
@@ -157,12 +164,10 @@ func (rm *RoomManager) run() {
 			if !ok { // If room was not found for join request, create it!
 				m = &managedRoom{
 					room:  NewRoom(),
-					count: 1, // start with count 1 for first user
+//					count: 0,
 				}
 				rm.rooms[req.name] = m
 				go rm.callbackRoomCreation(req.name)
-			} else if _, ok := rm.members[req.conn]; !ok { // If room exists (and this connection isn't already joined) increase count and join.
-				m.count++
 			}
 			m.room.join <- req.conn
 			c, ok := rm.members[req.conn]
@@ -251,6 +256,7 @@ func (rm *RoomManager) LeaveAll(conn *Connection) {
 // Emit a message, that can be fetched using the golem client library. The provided
 // data interface will be automatically marshalled according to the active protocol.
 func (rm *RoomManager) Emit(to string, event string, data interface{}) {
+	fmt.Printf("[golem] Number of clients in %s: %d\n", to, rm.rooms[to].Count())
 	rm.send <- &roomMsg{
 		to: to,
 		msg: &message{
@@ -275,7 +281,7 @@ func (rm *RoomManager) EmitRoomList(to string) {
 	var rooms []RoomList
 
 	for k,r := range rm.rooms {
-		rooms = append(rooms, RoomList{Name: k, Members: r.count})
+		rooms = append(rooms, RoomList{Name: k, Members: r.Count()})
 	}
 
 	rm.send <- &roomMsg{

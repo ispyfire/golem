@@ -35,6 +35,8 @@ type Room struct {
 	leave chan *Connection
 	// Broadcast to room members
 	send chan *message
+	// Count of connections in room
+	Count int
 }
 
 // Creates and initialised a room and returns pointer to it.
@@ -59,11 +61,13 @@ func (r *Room) run() {
 		// Join
 		case conn := <-r.join:
 			r.members[conn] = true
+			r.Count = len(r.members)
 		// Leave
 		case conn := <-r.leave:
 			if _, ok := r.members[conn]; ok { // If member exists, delete it
 				delete(r.members, conn)
 			}
+			r.Count = len(r.members)
 		// Send
 		case message := <-r.send:
 			for conn := range r.members { // For every connection try to send
