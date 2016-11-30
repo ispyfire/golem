@@ -256,7 +256,7 @@ func (rm *RoomManager) LeaveAll(conn *Connection) {
 // Emit a message, that can be fetched using the golem client library. The provided
 // data interface will be automatically marshalled according to the active protocol.
 func (rm *RoomManager) Emit(to string, event string, data interface{}) {
-	if ok, _ := rm.rooms[to]; ok {
+	if _, ok := rm.rooms[to]; ok {
 		fmt.Printf("[golem] Number of clients in %s: %d\n", to, rm.rooms[to].Count())
 	}
 	rm.send <- &roomMsg{
